@@ -255,8 +255,8 @@ try:
         # logging.info('Finished turn {}'.format(turn))
         turn += 1
 
-except ValueError:
-    pass
+#except ValueError:
+#    pass
 except Exception as E:
     logging.exception('')
     raise(E)

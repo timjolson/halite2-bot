@@ -50,32 +50,24 @@ try:
             # logging.info("Starting, my id: %d"%(me.id))
             ran_once = True
 
-        # logging.info('filter start={}'.format(time.time() - start))
-        # logging.info('Start turn {}'.format(turn))
-        my_ships = game_map.get_me().all_ships()
-        my_docked = [s for s in my_ships if s.DockingStatus == s.DockingStatus.DOCKED]
-        their_ships = game_map.their_ships()
-        all_planets = game_map.all_planets()
-        my_planets = [p for p in all_planets if p.owner is not None and p.owner.id == me.id]
-        fresh_planets = [p for p in all_planets if p.owner is None]
-        their_planets = [p for p in all_planets if p not in my_planets+fresh_planets]
-        dockable_planets = [p for p in fresh_planets+my_planets if p.ratio_docked<0.95]
+        S = Struct(all=Struct(),my=Struct(),their=Struct())
+        S.my.all = game_map.get_me().all_ships()
+        S.my.docked = [s for s in S.my.all if s.docking_status != s.DockingStatus.UNDOCKED]
+        S.my.undocked = [s for s in S.my.all if s.docking_status == s.DockingStatus.UNDOCKED]
+        S.their.all = game_map.their_ships()
+        S.their.docked = [s for s in S.their.all if s.docking_status != s.DockingStatus.UNDOCKED]
+        S.their.undocked = [s for s in S.their.all if s.docking_status == s.DockingStatus.UNDOCKED]
+        S.all = S.my.all + S.their.all
 
-        timeout_lim = 1.97 - len(my_ships)/1000
+        P = Struct(all=Struct(), my=Struct(), their=Struct())
+        P.all = game_map.all_planets()
+        P.my.all = [p for p in P.all if p.owner is not None and p.owner.id == me.id]
+        P.my.dockable = [p for p in P.my.all if p.ratio_docked < 1.0]
+        P.fresh = [p for p in P.all if p.owner is None]
+        P.dockable = [p for p in P.fresh+P.my.dockable]
+        P.their = [p for p in P.all if p not in P.my.all+P.fresh]
 
-        # logging.info('all')
-        # logging.info([p.id for p in all_planets])
-        # logging.info('my')
-        # logging.info([p.id for p in my_planets])
-        # logging.info('fresh')
-        # logging.info([p.id for p in fresh_planets])
-        # logging.info('dockable')
-        # logging.info([p.id for p in dockable_planets])
-        # logging.info('their')
-        # logging.info([p.id for p in their_planets])
-        # logging.info('ships:{}vs{} ; planets owned:{}vs{} ; dockable:{}'.format(
-        #     len(my_ships), len(their_ships), len(my_planets), len(their_planets), len(dockable_planets)
-        #  ))
+        timeout_lim = 1.97 - len(S.my.all)/1000
 
         # if not UPLOADED():
         # if me.id == 0:
@@ -124,27 +116,17 @@ try:
         command_queue = []
         # For every ship that I control
         # logging.info('ship start={}'.format(time.time() - start))
-        for ship in my_ships:
-            # If the ship is docked
-            if ship.docking_status != ship.DockingStatus.UNDOCKED:
-                # Skip this ship
-                continue
+        for ship in S.my.undocked:
 
-            # if time.time() - start > timeout_lim:
-            #     logging.info('break={}'.format(time.time() - start))
-                # break
+            if time.time() - start > timeout_lim:
+                logging.info('break={}'.format(time.time() - start))
+                break
 
             # logging.info('distance start={}'.format(time.time() - start))
             # For each planet in the game (only non-destroyed planets are included)
             # https://pythonprogramming.net/custom-ai-halite-ii-artificial-intelligence-competition/?completed=/modify-starter-bot-halite-ii-artificial-intelligence-competition/
-            # entities_by_distance = OrderedDict(sorted(game_map.nearby_entities_by_distance(ship).items(), key=lambda t: t[0]))
-            closest_empty_planets = game_map.nearby_entities_by_distance(ship, dockable_planets)[:,1]
-            # logging.info('closest')
-            # logging.info([p.id for d, P in closest_empty_planets for p in P])
-            # closest_empty_planets = game_map.nearby_entities_by_distance(ship, dockable_planets)
-            # empty_planet_distances = closest_empty_planets[:][1][0]
-            closest_enemy_ships = game_map.nearby_entities_by_distance(ship, their_ships)[:10, 1]
-            # enemy_ship_distances = closest_enemy_ships[:][1][0]
+            closest_empty_planets = game_map.nearby_entities_by_distance(ship, P.dockable)[:,1]
+            closest_enemy_ships = game_map.nearby_entities_by_distance(ship, S.their.all)[:10, 1]
 
             # logging.info('ship {}'.format(ship.id))
             rank, target, distance = -2.2e-308, None, 0
@@ -189,7 +171,7 @@ try:
                         # hlt.entity.Position(planet.x, planet.y),
                         target,
                         game_map,
-                        obstacles+my_ships+all_planets,
+                        obstacles+S.my.all+P.all,
                         speed=speed,
                         angular_step=1)
 
@@ -209,17 +191,18 @@ try:
                 if target:
                     logging.info('chose hunting {}'.format(target.id))
                     navigate_command = ship.navigate(
-                        target, game_map, all_planets+my_ships, speed=MAX_SPEED)
+                        target, game_map, P.all+S.my.all, speed=MAX_SPEED)
                     if navigate_command:
                         command_queue.append(navigate_command)
 
 
-        # if len(command_queue)==0:
-        #     if len(my_docked)>0:
-        #         navigate_command = my_docked[0].thrust(0,0)
-        #     else:
-        #         navigate_command = my_ships[0].thrust(0,0)
-        #     command_queue.append(navigate_command)
+        if len(command_queue)==0:
+            if len(S.my.docked)>0:
+                navigate_command = S.my.docked[0].thrust(0,0)
+            else:
+                navigate_command = S.my.all[0].thrust(0,0)
+            command_queue.append(navigate_command)
+        
         game.send_command_queue(command_queue)
 
         # if not UPLOADED():
@@ -240,8 +223,8 @@ try:
         logging.info('Finished turn {}'.format(turn))
         turn += 1
         
-except ValueError:
-    pass
+#except ValueError:
+#    pass
 except Exception as E:
     logging.exception('')
     raise(E)
