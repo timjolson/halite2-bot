@@ -1,2 +1,1 @@
-rem halite.exe "python MyBot.py" "python MyBot0.py" -q -t
-halite.exe "python MyBot.py" "python MyBot0.py" -q
+halite.exe "python ../bots/ai/MyBot0.py" "python ../bots/ai/MyBot1.py" -q

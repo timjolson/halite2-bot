@@ -22,7 +22,8 @@ import copy
 # In[13]:
 
 def logcosh(y_true, y_pred):
-    """Logarithm of the hyperbolic cosine of the prediction error.
+    """Sourced from keras version 2
+    Logarithm of the hyperbolic cosine of the prediction error.
     `log(cosh(x))` is approximately equal to `(x ** 2) / 2` for small `x` and
     to `abs(x) - log(2)` for large `x`. This means that 'logcosh' works mostly
     like the mean squared error, but will not be so strongly affected by the
@@ -89,6 +90,7 @@ def save_models(path, models, model_names=None):
     if not os.path.exists(path):
         os.mkdir(path)
     
+    print('Saving {} models to {}'.format(len(models), path))
     if model_names:
         if len(model_names)==len(models):
             for m, n in tqdm(zip(models, model_names)):
@@ -307,6 +309,4 @@ def train_and_eval(models, x_train, y_train, x_test, y_test, epochs=5, batch_siz
 
 
 # In[ ]:
-
-
 
