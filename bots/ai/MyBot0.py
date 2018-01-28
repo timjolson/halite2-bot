@@ -21,16 +21,19 @@ config.gpu_options.per_process_gpu_memory_fraction = 0.2
 set_session(tf.Session(config=config))
 sys.stderr = stderr
 
+UPLOADED = not os.path.isfile('local.txt')
+
 VERSION = 0
 models = os.listdir('./models')
 model = load_model('./models/'+models[VERSION])
-VERSION = 0 + np.round(VERSION/10, 1)
 
-#time.sleep(1)
-try: subprocess.Popen("del -f c{}_input.vec".format(VERSION))
-except FileNotFoundError: pass
-try: subprocess.Popen("del -f c{}_out.vec".format(VERSION))
-except FileNotFoundError: pass
+if not UPLOADED:
+    VERSION = 0 + np.round(VERSION/10, 1)
+
+    try: subprocess.Popen("del -f c{}_input.vec".format(VERSION))
+    except FileNotFoundError: pass
+    try: subprocess.Popen("del -f c{}_out.vec".format(VERSION))
+    except FileNotFoundError: pass
 
 COS_LOOKUP = {a:8*np.cos(np.deg2rad(a)) for a in np.arange(0,360,1)}
 SIN_LOOKUP = {a:8*np.sin(np.deg2rad(a)) for a in np.arange(0,360,1)}
@@ -41,6 +44,7 @@ game = hlt.Game("v{}".format(VERSION), logging.INFO)
 
 try:
     me, turn, ran_once = None, 0, False
+    output_vector = [0.3, 0.3]
 
     while True:
         # Update the map for the new turn and get the latest version
@@ -51,7 +55,8 @@ try:
             me = game_map.get_me()
             num_players = len(game_map.all_players())
             area = game.map.width * game.map.height
-            logging.info("Starting, my id: %d"%(me.id))
+            if not UPLOADED:
+                logging.info("Starting, my id: %d"%(me.id))
             ran_once = True
 
         #logging.info('Start turn {} @ {}'.format(turn, time.time()-start))
@@ -117,11 +122,10 @@ try:
                         D.ships.all, D.ships.my, D.ships.their
                         ]
 
-        #if np.mod(turn,6)==0:
-            #output_vector = [random.randrange(-1000,1000)/1000.0, random.randrange(-1000,1000)/1000.0]
-        #output_vector = [0.0,0.0]
-        #logging.info('about to predict')
-        output_vector = model.predict(np.array([input_vector]))[0]
+        new_output_vector = model.predict(np.array([input_vector]))[0]
+        output_vector = [output_vector[0]*0.5 + new_output_vector[0]*0.5,
+                        output_vector[1]*0.5 + new_output_vector[1]*0.5]
+        
         #logging.info(output_vector)
         W = Struct(
             threat=output_vector[0],  # attack/farm bias              +- 1
@@ -279,28 +283,29 @@ try:
             if navigate_command:
                 command_queue.append(navigate_command)
 
-        # if len(command_queue)==0:
-        #     if len(my_docked)>0:
-        #         navigate_command = my_docked[0].thrust(0,0)
-        #     else:
-        #         navigate_command = my_ships[0].thrust(0,0)
-        #     command_queue.append(navigate_command)
+        if len(command_queue)==0:
+            if C.ships.my.docked>0:
+                navigate_command = S.my.docked[0].thrust(0,0)
+            else:
+                navigate_command = S.my.all[0].thrust(0,0)
+            command_queue.append(navigate_command)
         
         game.send_command_queue(command_queue)
         
-        with open("c{}_input.vec".format(VERSION), "a") as f:
-            f.write(str(input_vector))
-            f.write('\n')
+        if not UPLOADED:
+            with open("c{}_input.vec".format(VERSION), "a") as f:
+                f.write(str(input_vector))
+                f.write('\n')
 
-        with open("c{}_out.vec".format(VERSION), "a") as f:
-            f.write(str(output_vector))
-            f.write('\n')
+            with open("c{}_out.vec".format(VERSION), "a") as f:
+                f.write(str(output_vector))
+                f.write('\n')
 
         # logging.info('Finished turn {}'.format(turn))
         turn += 1
 
 #except ValueError:
-    #pass
+#    pass
 except Exception as E:
     logging.exception('')
 
