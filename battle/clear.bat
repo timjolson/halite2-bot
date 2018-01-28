@@ -1,3 +1,4 @@
 del *.log
-del replay*
 del *.vec
+del replay*
+
