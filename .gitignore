@@ -97,3 +97,9 @@ ENV/
 
 # mypy
 .mypy_cache/
+*.hlt
+*.vec
+*.in
+*.out
+battle/train_in.npy
+battle/train_out.npy
