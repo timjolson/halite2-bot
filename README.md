@@ -9,15 +9,10 @@ Bots and related utilities for the Halite2 (2017-2018) AI/ML Competition.
 
 [My competition user profile](https://halite.io/user/?user_id=7900)
 
-![My best uploaded bot](/best.png | width=400)
-![My best uploaded bot](/best.png | height=400)
-![My best uploaded bot](/best.png | width=200)
-
-
 ![My best uploaded bot | 10%](/best.png)
 ![My best uploaded bot | 50%](/best.png)
 ![My best uploaded bot | 25%](/best.png)
 
-![My best uploaded bot | height=300](/best.png)
-![My best uploaded bot | height=200](/best.png)
-![My best uploaded bot | width=200](/best.png)
+![My best uploaded bot | height=10%](/best.png)
+![My best uploaded bot | height=50%](/best.png)
+![My best uploaded bot | width=50%](/best.png)
