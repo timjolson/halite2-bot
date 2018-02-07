@@ -23,7 +23,11 @@ sys.stderr = stderr
 
 UPLOADED = not os.path.isfile('clear.bat')
 
-VERSION = int(''.join(ele for ele in os.path.basename(__file__) if ele.isdigit()))
+# from file name
+# VERSION = int(''.join(ele for ele in os.path.basename(__file__) if ele.isdigit()))
+# from passed in argument
+VERSION = eval(sys.argv[1])
+
 models = os.listdir('./models')
 model = load_model('./models/'+models[VERSION])
 
